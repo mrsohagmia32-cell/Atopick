@@ -14,7 +14,7 @@ app = Flask(__name__)
 def home():
     return "Pexels Image Fetcher Worker is running live!"
 
-# আপনার Pexels API Key
+# আপনার পিক্সেল এপিআই কি
 api_key = "DiqA3nNE1bXk1CaViv1inoLX9HW18I8g6GtECOhrp6y8kdloYRvRZRCd"
 headers = {"Authorization": api_key}
 
@@ -51,6 +51,12 @@ def fetch_and_push_image():
                     # গিটহাবে অটো কমিট ও পুশ করার অংশ
                     try:
                         repo = Repo(".")
+                        
+                        # রেন্ডারের এনভায়রনমেন্ট থেকে গিট টোকেন নিয়ে রিমোট ইউআরএল সেট করা
+                        github_token = os.environ.get("GITHUB_TOKEN")
+                        if github_token:
+                            repo.git.remote("set-url", "origin", f"https://{github_token}@github.com/mrsohagmia32-cell/Atopick.git")
+                        
                         repo.git.add(filename)
                         repo.index.commit(f"Auto-fetched Pexels image: {filename} [skip ci]")
                         origin = repo.remote(name='origin')
@@ -78,6 +84,6 @@ if __name__ == "__main__":
     # ব্যাকগ্রাউন্ড ওয়ার্কার থ্রেড চালু করা
     start_background_task()
     
-    # রেন্ডার সার্ভারের দেওয়া পোর্ট অনুযায়ী ফ্লাস্ক রান করা
+    # রেন্ডারের দেওয়া পোর্ট অনুযায়ী ফ্লাস্ক রান করা
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
