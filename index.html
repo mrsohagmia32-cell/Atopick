@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature & Wildlife Media Gallery - Bs bhai</title>
+    <!-- FontAwesome & Tailwind CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+        body { font-family: 'Hind Siliguri', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-4">
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <header class="text-center my-6">
+            <h1 class="text-3xl font-bold text-emerald-400 mb-2"><i class="fa-solid id fa-photo-film"></i> প্রকৃতি ও ওয়াইল্ডলাইফ ছবি ও ভিডিও গ্যালারি</h1>
+            <p class="text-gray-400 text-sm">চীন, উত্তর কোরিয়া, পাহাড়-পর্বত এবং বন্য প্রাণীর চমৎকার সব এইচডি ছবি ও ভিডিও ক্লিপ।</p>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="flex gap-2 mb-6">
+            <input type="text" id="searchInput" placeholder="যেমন: North Korea scenery, China mountains, wild animals..." 
+                class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-emerald-500 text-white">
+            <button onclick="initSearch(true)" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-lg font-semibold transition flex items-center gap-2">
+                <i class="fa-solid fa-search"></i> খুঁজুন
+            </button>
+        </div>
+
+        <!-- Quick Tags -->
+        <div class="flex flex-wrap gap-2 mb-8 justify-center">
+            <button onclick="quickSearch('North Korea landscape')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">North Korea Scenery</button>
+            <button onclick="quickSearch('China scenic mountains')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">China Mountains</button>
+            <button onclick="quickSearch('majestic wildlife animals')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">Wild Animals</button>
+            <button onclick="quickSearch('epic mountain peaks')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">Mountain Peaks</button>
+        </div>
+
+        <!-- Media Grid Gallery (Photos & Videos) -->
+        <div id="mediaGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <!-- Items will load here -->
+        </div>
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="hidden text-center py-10">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-emerald-400"></i>
+            <p class="text-gray-400 mt-2">আরও ছবি ও ভিডিও লোড হচ্ছে...</p>
+        </div>
+    </div>
+
+    <!-- Modal for Full View (Supports both Image & Video) -->
+    <div id="mediaModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4" onclick="closeModal()">
+        <div class="relative max-w-3xl w-full bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 p-6 flex flex-col items-center" onclick="event.stopPropagation()">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-white text-xl hover:text-emerald-400"><i class="fa-solid fa-xmark"></i></button>
+            
+            <!-- Dynamic Content Container -->
+            <div id="modalContentContainer" class="w-full flex justify-center mb-4 max-h-[60vh]">
+                <!-- Injected via JS -->
+            </div>
+            
+            <div class="w-full text-left mb-4">
+                <h3 id="modalTitle" class="text-lg font-semibold text-emerald-300 mb-1"></h3>
+                <p class="text-sm text-gray-300 mb-2">নির্মাতা/ফটোগ্রাফার: <span id="modalAuthor" class="text-white font-medium"></span></p>
+                <div class="bg-gray-900/60 p-2.5 rounded border border-gray-700 text-xs text-gray-400 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>পিক্সেল ফ্রি লাইসেন্স: কমার্সিয়াল ও নন-কমার্সিয়াল কাজে ব্যবহারের জন্য উন্মুক্ত।</span>
+                </div>
+            </div>
+
+            <a id="modalDownload" href="" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-center py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-download"></i> অরিজিনাল ফাইল ডাউনলোড করুন
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "DiqA3nNE1bXk1CaViv1inoLX9HW18I8g6GtECOhrp6y8kdloYRvRZRCd";
+
+        const scenicQueries = [
+            "North Korea landscape", "China scenic mountains", "Zhangjiajie mountains China",
+            "majestic wildlife animals", "epic mountain peaks nature", "beautiful nature scenery Asia"
+        ];
+
+        let currentPage = 1;
+        let currentQuery = "";
+        let isLoading = false;
+
+        async function fetchMedia(isNewSearch = false) {
+            if (isLoading) return;
+            isLoading = true;
+            document.getElementById('loader').classList.remove('hidden');
+
+            if (isNewSearch) {
+                currentPage = 1;
+                document.getElementById('mediaGrid').innerHTML = '';
+                let queryInput = document.getElementById('searchInput').value.trim();
+                currentQuery = queryInput || scenicQueries[Math.floor(Math.random() * scenicQueries.length)];
+                if(!queryInput) document.getElementById('searchInput').value = currentQuery;
+            }
+
+            try {
+                // একসাথে ছবি এবং ভিডিও এপিআই ফেচ করা
+                const [photoRes, videoRes] = await Promise.all([
+                    fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(currentQuery)}&per_page=9&page=${currentPage}`, {
+                        headers: { Authorization: API_KEY }
+                    }),
+                    fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(currentQuery)}&per_page=6&page=${currentPage}`, {
+                        headers: { Authorization: API_KEY }
+                    })
+                ]);
+
+                const photoData = await photoRes.json();
+                const videoData = await videoRes.json();
+                
+                document.getElementById('loader').classList.add('hidden');
+                isLoading = false;
+
+                const photos = photoData.photos || [];
+                const videos = videoData.videos || [];
+
+                if (photos.length === 0 && videos.length === 0) {
+                    if (isNewSearch) {
+                        document.getElementById('mediaGrid').innerHTML = '<p class="col-span-full text-center text-gray-400">কোনো ছবি বা ভিডিও পাওয়া যায়নি।</p>';
+                    }
+                    return;
+                }
+
+                const grid = document.getElementById('mediaGrid');
+                
+                // ছবিগুলো রেন্ডার করা
+                photos.forEach(photo => {
+                    let title = photo.alt ? photo.alt : `${currentQuery} photo`;
+                    title = title.charAt(0).toUpperCase() + title.slice(1);
+
+                    const card = document.createElement('div');
+                    card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 flex flex-col justify-between cursor-pointer group";
+                    card.innerHTML = `
+                        <div class="h-48 overflow-hidden relative" onclick='openModal("photo", ${JSON.stringify(photo.src.large)}, ${JSON.stringify(photo.photographer)}, ${JSON.stringify(title)})'>
+                            <img src="${photo.src.medium}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <span class="absolute top-2 left-2 bg-black/60 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-semibold"><i class="fa-solid fa-camera"></i> ছবি</span>
+                            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <span class="bg-black/70 text-white text-xs px-3 py-1.5 rounded-full"><i class="fa-solid fa-expand"></i> বড় করে দেখুন</span>
+                            </div>
+                        </div>
+                        <div class="p-3.5 flex flex-col gap-2 bg-gray-800/95">
+                            <h4 class="text-xs font-semibold text-gray-200 truncate" title="${title}">${title}</h4>
+                            <div class="flex items-center justify-between border-t border-gray-700/60 pt-2">
+                                <span class="text-[11px] text-gray-400 truncate max-w-[130px]"><i class="fa-solid fa-user text-emerald-400"></i> ${photo.photographer}</span>
+                                <a href="${photo.src.large}" target="_blank" download class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] px-2.5 py-1 rounded transition flex items-center gap-1" onclick="event.stopPropagation()">
+                                    <i class="fa-solid fa-download"></i> ডাউনলোড
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                // ভিডিওগুলো রেন্ডার করা
+                videos.forEach(video => {
+                    let title = `${currentQuery} cinematic video`;
+                    let videoFile = video.video_files.find(f => f.quality === 'hd') || video.video_files[0];
+                    let videoUrl = videoFile ? videoFile.link : '';
+
+                    const card = document.createElement('div');
+                    card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 flex flex-col justify-between cursor-pointer group";
+                    card.innerHTML = `
+                        <div class="h-48 overflow-hidden relative" onclick='openModal("video", ${JSON.stringify(videoUrl)}, ${JSON.stringify(video.user.name)}, ${JSON.stringify(title)})'>
+                            <img src="${video.image}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            <span class="absolute top-2 left-2 bg-blue-600/80 text-white text-[10px] px-2 py-0.5 rounded font-semibold"><i class="fa-solid fa-video"></i> ভিডিও</span>
+                            <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                <div class="w-12 h-12 bg-emerald-600/90 rounded-full flex items-center justify-center text-white text-lg group-hover:scale-110 transition">
+                                    <i class="fa-solid fa-play"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-3.5 flex flex-col gap-2 bg-gray-800/95">
+                            <h4 class="text-xs font-semibold text-gray-200 truncate" title="${title}">${title}</h4>
+                            <div class="flex items-center justify-between border-t border-gray-700/60 pt-2">
+                                <span class="text-[11px] text-gray-400 truncate max-w-[130px]"><i class="fa-solid fa-user text-emerald-400"></i> ${video.user.name}</span>
+                                <a href="${videoUrl}" target="_blank" download class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] px-2.5 py-1 rounded transition flex items-center gap-1" onclick="event.stopPropagation()">
+                                    <i class="fa-solid fa-download"></i> ডাউনলোড
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                currentPage++;
+            } catch (error) {
+                document.getElementById('loader').classList.add('hidden');
+                isLoading = false;
+            }
+        }
+
+        function initSearch(isNew) {
+            fetchMedia(isNew);
+        }
+
+        function quickSearch(query) {
+            document.getElementById('searchInput').value = query;
+            fetchMedia(true);
+        }
+
+        function openModal(type, url, author, title) {
+            const container = document.getElementById('modalContentContainer');
+            container.innerHTML = '';
+
+            if (type === 'photo') {
+                container.innerHTML = `<img src="${url}" alt="${title}" class="max-h-[60vh] object-contain rounded-lg shadow-md">`;
+            } else {
+                container.innerHTML = `<video src="${url}" controls autoplay class="max-h-[60vh] w-full object-contain rounded-lg shadow-md"></video>`;
+            }
+
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalAuthor').innerText = author;
+            document.getElementById('modalDownload').href = url;
+            document.getElementById('mediaModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('mediaModal').classList.add('hidden');
+            document.getElementById('modalContentContainer').innerHTML = ''; // Stop playing video when closed
+        }
+
+        // Infinite Scroll Listener
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
+                fetchMedia(false);
+            }
+        });
+
+        // Initial Load
+        window.onload = () => {
+            fetchMedia(true);
+        };
+    </script>
+</body>
+</html>
