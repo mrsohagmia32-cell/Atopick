@@ -18,7 +18,7 @@
         <!-- Header -->
         <header class="text-center my-6">
             <h1 class="text-3xl font-bold text-emerald-400 mb-2"><i class="fa-solid fa-photo-film"></i> প্রকৃতি ও ওয়াইল্ডলাইফ ছবি ও ভিডিও গ্যালারি</h1>
-            <p class="text-gray-400 text-sm">প্রতিটি পোস্টের রয়েছে আলাদা ইউনিক লিংক, যা সরাসরি শেয়ার করা যায়।</p>
+            <p class="text-gray-400 text-sm">প্রতিটি পোস্টের রয়েছে ইউনিক লিংক এবং এআই (ChatGPT) ফ্রেন্ডলি ডিরেক্ট ইমেজ ইউআরএল।</p>
         </header>
 
         <!-- Search Bar -->
@@ -31,7 +31,7 @@
         </div>
 
         <!-- Quick Tags -->
-        <div class="flex flex-wrap gap-2 mb-8 justify-center">
+        <div class="flex flex-wrap gap-2 mb-8 justify-content justify-center">
             <button onclick="quickSearch('North Korea landscape')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">North Korea Scenery</button>
             <button onclick="quickSearch('China scenic mountains')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">China Mountains</button>
             <button onclick="quickSearch('majestic wildlife animals')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">Wild Animals</button>
@@ -52,16 +52,26 @@
 
     <!-- Modal for Full View -->
     <div id="mediaModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4" onclick="closeModal()">
-        <div class="relative max-w-3xl w-full bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 p-6 flex flex-col items-center" onclick="event.stopPropagation()">
+        <div class="relative max-w-3xl w-full bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 p-6 flex flex-col items-center max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-white text-xl hover:text-emerald-400"><i class="fa-solid fa-xmark"></i></button>
             
-            <div id="modalContentContainer" class="w-full flex justify-center mb-4 max-h-[60vh]">
+            <div id="modalContentContainer" class="w-full flex justify-center mb-4 max-h-[50vh]">
                 <!-- Injected via JS -->
             </div>
             
             <div class="w-full text-left mb-4">
                 <h3 id="modalTitle" class="text-lg font-semibold text-emerald-300 mb-1"></h3>
                 <p class="text-sm text-gray-300 mb-2">নির্মাতা/ফটোগ্রাফার: <span id="modalAuthor" class="text-white font-medium"></span></p>
+                
+                <!-- ChatGPT & Instagram Friendly Direct Image URL Box -->
+                <div class="mb-3">
+                    <label class="block text-xs text-emerald-400 mb-1 font-semibold"><i class="fa-solid fa-robot"></i> ChatGPT / Instagram-এর জন্য সরাসরি ছবির লিংক (Direct Image URL):</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="directImageUrl" readonly class="w-full bg-gray-900 border border-gray-700 rounded px-3 py-1.5 text-xs text-gray-300 select-all focus:outline-none">
+                        <button onclick="copyDirectUrl()" class="bg-gray-700 hover:bg-gray-600 text-xs px-3 py-1.5 rounded transition whitespace-nowrap">ডাইরেক্ট লিংক কপি</button>
+                    </div>
+                </div>
+
                 <div class="bg-gray-900/60 p-2.5 rounded border border-gray-700 text-xs text-gray-400 flex items-center gap-2">
                     <i class="fa-solid fa-circle-check text-emerald-400"></i>
                     <span>পিক্সেল ফ্রি লাইসেন্স: কমার্সিয়াল ও নন-কমার্সিয়াল কাজে ব্যবহারের জন্য উন্মুক্ত।</span>
@@ -73,7 +83,7 @@
                     <i class="fa-solid fa-download"></i> ডাউনলোড
                 </a>
                 <button onclick="copyShareLink()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 text-sm transition">
-                    <i class="fa-solid fa-share-nodes"></i> লিংক কপি
+                    <i class="fa-solid fa-share-nodes"></i> পেজ লিংক কপি
                 </button>
             </div>
         </div>
@@ -212,19 +222,19 @@
             container.innerHTML = '';
 
             if (type === 'photo') {
-                container.innerHTML = `<img src="${url}" alt="${title}" class="max-h-[60vh] object-contain rounded-lg shadow-md">`;
+                container.innerHTML = `<img src="${url}" alt="${title}" class="max-h-[50vh] object-contain rounded-lg shadow-md">`;
             } else {
-                container.innerHTML = `<video src="${url}" controls autoplay class="max-h-[60vh] w-full object-contain rounded-lg shadow-md"></video>`;
+                container.innerHTML = `<video src="${url}" controls autoplay class="max-h-[50vh] w-full object-contain rounded-lg shadow-md"></video>`;
             }
 
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalAuthor').innerText = author;
             document.getElementById('modalDownload').href = url;
+            document.getElementById('directImageUrl').value = url; // ডাইরেক্ট ইমেজ লিংক ইনপুটে বসিয়ে দেওয়া
             
             activeMediaData = { type, id, url, author, title };
             document.getElementById('mediaModal').classList.remove('hidden');
 
-            // ব্রাউজারের ইউআরএলে ইউনিক আইডি যোগ করা যাতে আলাদা লিংক তৈরি হয়
             if (pushState) {
                 const newUrl = `?${type}_id=${id}`;
                 window.history.pushState({ type, id, url, author, title }, '', newUrl);
@@ -234,16 +244,22 @@
         function closeModal() {
             document.getElementById('mediaModal').classList.add('hidden');
             document.getElementById('modalContentContainer').innerHTML = '';
-            // মোডাল বন্ধ করলে মূল ইউআরএলে ফিরে যাওয়া
             window.history.pushState({}, '', window.location.pathname);
         }
 
         function copyShareLink() {
             navigator.clipboard.writeText(window.location.href);
-            alert('লিংকটি ক্লিপবোর্ডে কপি হয়ে গেছে! এখন এটি যে কারো সাথে শেয়ার করতে পারবেন।');
+            alert('পেজের ইউনিক লিংকটি ক্লিপবোর্ডে কপি হয়ে গেছে!');
         }
 
-        // ব্রাউজারের ব্যাক/ফরোয়ার্ড বা সরাসরি লিংক দিয়ে প্রবেশ করলে হ্যান্ডেল করার জন্য
+        function copyDirectUrl() {
+            const copyText = document.getElementById('directImageUrl');
+            copyText.select();
+            copyText.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(copyText.value);
+            alert('ছবির ডাইরেক্ট লিংকটি কপি করা হয়েছে! এখন এটি চ্যাটজিপিটিকে দিয়ে সরাসরি ইনস্টাগ্রামে পোস্ট করাতে পারবেন।');
+        }
+
         window.onpopstate = function(event) {
             if (event.state && event.state.id) {
                 openModal(event.state.type, event.state.id, event.state.url, event.state.author, encodeURIComponent(event.state.title), false);
@@ -253,13 +269,11 @@
             }
         };
 
-        // Initial Load & Direct Link Checker
         window.onload = async () => {
             const urlParams = new URLSearchParams(window.location.search);
             const photoId = urlParams.get('photo_id');
             const videoId = urlParams.get('video_id');
 
-            // যদি কেউ সরাসরি ইউনিক লিংক দিয়ে প্রবেশ করে, তবে এপিআই থেকে ডেটা এনে স্বয়ংক্রিয়ভাবে ওপেন করা
             if (photoId) {
                 try {
                     const res = await fetch(`https://api.pexels.com/v1/photos/${photoId}`, {
