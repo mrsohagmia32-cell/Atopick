@@ -17,8 +17,8 @@
     <div class="max-w-5xl mx-auto">
         <!-- Header -->
         <header class="text-center my-6">
-            <h1 class="text-3xl font-bold text-emerald-400 mb-2"><i class="fa-solid id fa-photo-film"></i> প্রকৃতি ও ওয়াইল্ডলাইফ ছবি ও ভিডিও গ্যালারি</h1>
-            <p class="text-gray-400 text-sm">চীন, উত্তর কোরিয়া, পাহাড়-পর্বত এবং বন্য প্রাণীর চমৎকার সব এইচডি ছবি ও ভিডিও ক্লিপ।</p>
+            <h1 class="text-3xl font-bold text-emerald-400 mb-2"><i class="fa-solid fa-photo-film"></i> প্রকৃতি ও ওয়াইল্ডলাইফ ছবি ও ভিডিও গ্যালারি</h1>
+            <p class="text-gray-400 text-sm">প্রতিটি পোস্টের রয়েছে আলাদা ইউনিক লিংক, যা সরাসরি শেয়ার করা যায়।</p>
         </header>
 
         <!-- Search Bar -->
@@ -38,7 +38,7 @@
             <button onclick="quickSearch('epic mountain peaks')" class="bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-full text-xs text-gray-300">Mountain Peaks</button>
         </div>
 
-        <!-- Media Grid Gallery (Photos & Videos) -->
+        <!-- Media Grid Gallery -->
         <div id="mediaGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <!-- Items will load here -->
         </div>
@@ -50,12 +50,11 @@
         </div>
     </div>
 
-    <!-- Modal for Full View (Supports both Image & Video) -->
+    <!-- Modal for Full View -->
     <div id="mediaModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4" onclick="closeModal()">
         <div class="relative max-w-3xl w-full bg-gray-800 rounded-xl overflow-hidden shadow-2xl border border-gray-700 p-6 flex flex-col items-center" onclick="event.stopPropagation()">
             <button onclick="closeModal()" class="absolute top-4 right-4 text-white text-xl hover:text-emerald-400"><i class="fa-solid fa-xmark"></i></button>
             
-            <!-- Dynamic Content Container -->
             <div id="modalContentContainer" class="w-full flex justify-center mb-4 max-h-[60vh]">
                 <!-- Injected via JS -->
             </div>
@@ -69,9 +68,14 @@
                 </div>
             </div>
 
-            <a id="modalDownload" href="" target="_blank" download class="w-full bg-emerald-600 hover:bg-emerald-500 text-center py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition">
-                <i class="fa-solid fa-download"></i> অরিজিনাল ফাইল ডাউনলোড করুন
-            </a>
+            <div class="flex gap-2 w-full">
+                <a id="modalDownload" href="" target="_blank" download class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-center py-2.5 rounded-lg font-semibold flex items-center justify-center gap-2 transition text-sm">
+                    <i class="fa-solid fa-download"></i> ডাউনলোড
+                </a>
+                <button onclick="copyShareLink()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-lg font-semibold flex items-center gap-2 text-sm transition">
+                    <i class="fa-solid fa-share-nodes"></i> লিংক কপি
+                </button>
+            </div>
         </div>
     </div>
 
@@ -86,6 +90,7 @@
         let currentPage = 1;
         let currentQuery = "";
         let isLoading = false;
+        let activeMediaData = null;
 
         async function fetchMedia(isNewSearch = false) {
             if (isLoading) return;
@@ -101,7 +106,6 @@
             }
 
             try {
-                // একসাথে ছবি এবং ভিডিও এপিআই ফেচ করা
                 const [photoRes, videoRes] = await Promise.all([
                     fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(currentQuery)}&per_page=9&page=${currentPage}`, {
                         headers: { Authorization: API_KEY }
@@ -129,7 +133,6 @@
 
                 const grid = document.getElementById('mediaGrid');
                 
-                // ছবিগুলো রেন্ডার করা
                 photos.forEach(photo => {
                     let title = photo.alt ? photo.alt : `${currentQuery} photo`;
                     title = title.charAt(0).toUpperCase() + title.slice(1);
@@ -137,7 +140,7 @@
                     const card = document.createElement('div');
                     card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 flex flex-col justify-between cursor-pointer group";
                     card.innerHTML = `
-                        <div class="h-48 overflow-hidden relative" onclick='openModal("photo", ${JSON.stringify(photo.src.large)}, ${JSON.stringify(photo.photographer)}, ${JSON.stringify(title)})'>
+                        <div class="h-48 overflow-hidden relative" onclick='openModal("photo", "${photo.id}", "${photo.src.large}", "${photo.photographer}", "${encodeURIComponent(title)}")'>
                             <img src="${photo.src.medium}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                             <span class="absolute top-2 left-2 bg-black/60 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-semibold"><i class="fa-solid fa-camera"></i> ছবি</span>
                             <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
@@ -157,7 +160,6 @@
                     grid.appendChild(card);
                 });
 
-                // ভিডিওগুলো রেন্ডার করা
                 videos.forEach(video => {
                     let title = `${currentQuery} cinematic video`;
                     let videoFile = video.video_files.find(f => f.quality === 'hd') || video.video_files[0];
@@ -166,7 +168,7 @@
                     const card = document.createElement('div');
                     card.className = "bg-gray-800 rounded-lg overflow-hidden shadow-lg border border-gray-700 flex flex-col justify-between cursor-pointer group";
                     card.innerHTML = `
-                        <div class="h-48 overflow-hidden relative" onclick='openModal("video", ${JSON.stringify(videoUrl)}, ${JSON.stringify(video.user.name)}, ${JSON.stringify(title)})'>
+                        <div class="h-48 overflow-hidden relative" onclick='openModal("video", "${video.id}", "${videoUrl}", "${video.user.name}", "${encodeURIComponent(title)}")'>
                             <img src="${video.image}" alt="${title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
                             <span class="absolute top-2 left-2 bg-blue-600/80 text-white text-[10px] px-2 py-0.5 rounded font-semibold"><i class="fa-solid fa-video"></i> ভিডিও</span>
                             <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -204,7 +206,8 @@
             fetchMedia(true);
         }
 
-        function openModal(type, url, author, title) {
+        function openModal(type, id, url, author, encodedTitle, pushState = true) {
+            const title = decodeURIComponent(encodedTitle);
             const container = document.getElementById('modalContentContainer');
             container.innerHTML = '';
 
@@ -217,23 +220,70 @@
             document.getElementById('modalTitle').innerText = title;
             document.getElementById('modalAuthor').innerText = author;
             document.getElementById('modalDownload').href = url;
+            
+            activeMediaData = { type, id, url, author, title };
             document.getElementById('mediaModal').classList.remove('hidden');
+
+            // ব্রাউজারের ইউআরএলে ইউনিক আইডি যোগ করা যাতে আলাদা লিংক তৈরি হয়
+            if (pushState) {
+                const newUrl = `?${type}_id=${id}`;
+                window.history.pushState({ type, id, url, author, title }, '', newUrl);
+            }
         }
 
         function closeModal() {
             document.getElementById('mediaModal').classList.add('hidden');
-            document.getElementById('modalContentContainer').innerHTML = ''; // Stop playing video when closed
+            document.getElementById('modalContentContainer').innerHTML = '';
+            // মোডাল বন্ধ করলে মূল ইউআরএলে ফিরে যাওয়া
+            window.history.pushState({}, '', window.location.pathname);
         }
 
-        // Infinite Scroll Listener
-        window.addEventListener('scroll', () => {
-            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 300) {
-                fetchMedia(false);
-            }
-        });
+        function copyShareLink() {
+            navigator.clipboard.writeText(window.location.href);
+            alert('লিংকটি ক্লিপবোর্ডে কপি হয়ে গেছে! এখন এটি যে কারো সাথে শেয়ার করতে পারবেন।');
+        }
 
-        // Initial Load
-        window.onload = () => {
+        // ব্রাউজারের ব্যাক/ফরোয়ার্ড বা সরাসরি লিংক দিয়ে প্রবেশ করলে হ্যান্ডেল করার জন্য
+        window.onpopstate = function(event) {
+            if (event.state && event.state.id) {
+                openModal(event.state.type, event.state.id, event.state.url, event.state.author, encodeURIComponent(event.state.title), false);
+            } else {
+                document.getElementById('mediaModal').classList.add('hidden');
+                document.getElementById('modalContentContainer').innerHTML = '';
+            }
+        };
+
+        // Initial Load & Direct Link Checker
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const photoId = urlParams.get('photo_id');
+            const videoId = urlParams.get('video_id');
+
+            // যদি কেউ সরাসরি ইউনিক লিংক দিয়ে প্রবেশ করে, তবে এপিআই থেকে ডেটা এনে স্বয়ংক্রিয়ভাবে ওপেন করা
+            if (photoId) {
+                try {
+                    const res = await fetch(`https://api.pexels.com/v1/photos/${photoId}`, {
+                        headers: { Authorization: API_KEY }
+                    });
+                    const photo = await res.json();
+                    if (photo && photo.src) {
+                        let title = photo.alt ? photo.alt : 'Pexels photo';
+                        openModal('photo', photo.id, photo.src.large, photo.photographer, encodeURIComponent(title), false);
+                    }
+                } catch (e) {}
+            } else if (videoId) {
+                try {
+                    const res = await fetch(`https://api.pexels.com/videos/videos/${videoId}`, {
+                        headers: { Authorization: API_KEY }
+                    });
+                    const video = await res.json();
+                    if (video && video.video_files) {
+                        let videoFile = video.video_files.find(f => f.quality === 'hd') || video.video_files[0];
+                        openModal('video', video.id, videoFile.link, video.user.name, encodeURIComponent('Cinematic video'), false);
+                    }
+                } catch (e) {}
+            }
+
             fetchMedia(true);
         };
     </script>
